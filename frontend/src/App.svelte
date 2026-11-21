@@ -139,11 +139,16 @@
     {#if status?.logged_in}
       <span class="pill ok" title={status.server_state}>● {status.username}</span>
     {:else if status}
-      <span class="pill warn" title={status.server_state}>● {status.server_state}</span>
+      <span class="pill warn" title={status.error ?? status.server_state}>
+        ● {status.server_state}
+      </span>
     {:else}
       <span class="pill warn">● {statusError ?? "Connecting…"}</span>
     {/if}
   </header>
+  {#if status && !status.logged_in && status.error}
+    <p class="login-error">Soulseek: {status.error}</p>
+  {/if}
 
   <form class="search" onsubmit={search}>
     <input
@@ -251,6 +256,16 @@
 
   .pill.warn {
     color: var(--warn);
+  }
+
+  .login-error {
+    margin: -0.3rem 0 0.9rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    color: var(--bad);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
   }
 
   .search {

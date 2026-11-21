@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- Show why Soulseek is not logged in (e.g. a rejected username or password) in the app header,
+  the `error` attribute of the Soulseek connection sensor and the app log. slskd's warnings and
+  errors used to be logged at debug level only.
+
 ## 0.2.0
 
 - New Home Assistant integration (install from HACS), set up automatically through Supervisor

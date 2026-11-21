@@ -40,6 +40,7 @@ class Status(BaseModel):
     logged_in: bool
     server_state: str
     username: str
+    error: str | None = None  # why slskd is not logged in, when it said so
 
 
 class SearchRequest(BaseModel):
@@ -175,6 +176,7 @@ def create_app(settings: Settings, client: SlskdClient | None = None) -> FastAPI
             logged_in=state.is_logged_in,
             server_state=state.state,
             username=settings.soulseek_username,
+            error=engine.last_error if engine and not state.is_logged_in else None,
         )
 
     @app.get("/api/status")

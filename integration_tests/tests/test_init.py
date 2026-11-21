@@ -42,6 +42,7 @@ async def test_entities(hass: HomeAssistant, loaded_entry: MockConfigEntry) -> N
     assert connected is not None
     assert connected.state == "on"
     assert connected.attributes["username"] == "juan"
+    assert connected.attributes["error"] is None
 
     assert await hass.config_entries.async_unload(loaded_entry.entry_id)
     assert loaded_entry.state is ConfigEntryState.NOT_LOADED

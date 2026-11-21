@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Iterator
 from pathlib import Path
@@ -40,6 +41,32 @@ def test_status(client: TestClient, slskd: respx.MockRouter) -> None:
     assert body["engine"] == "external"
     assert body["logged_in"] is True
     assert body["username"] == "juan"
+
+
+async def test_status_reports_why_slskd_is_not_logged_in(tmp_path: Path) -> None:
+    fake = tmp_path / "slskd"
+    fake.write_text('#!/bin/sh\necho "[18:38:26 ERR] Login rejected: INVALIDPASS"\nexec sleep 30\n')
+    fake.chmod(0o755)
+    settings = Settings(
+        soulseek_username="juan",
+        soulseek_password="hunter2",
+        download_dir=tmp_path / "music",
+        incomplete_dir=tmp_path / "incomplete",
+        data_dir=tmp_path / "data",
+        slskd_binary=fake,
+    )
+    with (
+        respx.mock(base_url=f"http://127.0.0.1:{settings.slskd_port}/api/v0") as router,
+        TestClient(create_app(settings)) as client,
+    ):
+        router.get("/application").respond(json={"server": {"state": "Disconnected"}})
+        for _ in range(100):
+            body = client.get("/api/status").json()
+            if body["error"]:
+                break
+            await asyncio.sleep(0.02)
+    assert body["engine"] == "managed"
+    assert body["error"] == "Login rejected: INVALIDPASS"
 
 
 def test_engine_starting_is_503(client: TestClient, slskd: respx.MockRouter) -> None:
