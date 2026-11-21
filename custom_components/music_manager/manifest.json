@@ -1,0 +1,12 @@
+{
+  "domain": "music_manager",
+  "name": "Music Manager",
+  "codeowners": ["@jmanera"],
+  "config_flow": true,
+  "documentation": "https://github.com/jmanera/ha-music-manager",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/jmanera/ha-music-manager/issues",
+  "requirements": [],
+  "version": "0.2.0"
+}

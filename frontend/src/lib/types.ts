@@ -22,6 +22,7 @@ export interface Album {
   username: string;
   directory: string;
   title: string;
+  track_count: number;
   tracks: Track[];
   quality: string;
   lossless: boolean;

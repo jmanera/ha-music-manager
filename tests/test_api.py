@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterator
+from pathlib import Path
 
 import httpx
 import pytest
 import respx
 from fastapi.testclient import TestClient
 
-from ha_music_manager.api import create_app, group_state
+from ha_music_manager.api import create_app
 from ha_music_manager.config import Settings
+from ha_music_manager.downloads import group_state
 from ha_music_manager.slskd_client import SlskdClient
 from tests.conftest import search_file, search_response
 
@@ -164,8 +166,127 @@ def test_group_state(states: list[str], expected: str) -> None:
     assert group_state(states) == expected
 
 
-def test_ingress_only_rejects_other_clients() -> None:
-    settings = Settings(slskd_url="http://slskd.test", ingress_only=True)
+def test_ingress_only_needs_the_integration_key(
+    tmp_path: Path, slskd: respx.MockRouter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("SUPERVISOR_TOKEN", raising=False)
+    slskd.get("/application").respond(json={"server": {}})
+    settings = Settings(slskd_url="http://slskd.test", ingress_only=True, data_dir=tmp_path)
     app = create_app(settings, SlskdClient("http://slskd.test", "k" * 32))
+    key = (tmp_path / "integration_key").read_text()
     with TestClient(app) as c:
         assert c.get("/api/status").status_code == 403
+        wrong = {"Authorization": "Bearer nope"}
+        assert c.get("/api/status", headers=wrong).status_code == 403
+        right = {"Authorization": f"Bearer {key}"}
+        assert c.get("/api/status", headers=right).status_code == 200
+
+
+def complete_search(slskd: respx.MockRouter, responses: list[dict[str, object]]) -> None:
+    search = {"id": "s9", "searchText": "q", "state": "Completed", "isComplete": True}
+    slskd.post("/searches").respond(json=search)
+    slskd.get("/searches/s9/responses").respond(json=responses)
+    slskd.delete("/searches/s9").respond(204)
+
+
+ALBUMS = [
+    search_response("fast", [search_file(f"MP3 Album\\{i}.mp3", bitRate=320) for i in range(10)]),
+    search_response(
+        "slow",
+        [search_file(f"FLAC Album\\{i}.flac") for i in range(10)],
+        hasFreeUploadSlot=False,
+        queueLength=10,
+        uploadSpeed=50_000,
+    ),
+    search_response("tiny", [search_file("Single\\1.flac")]),
+]
+
+
+def test_search_and_wait_filters_and_limits(client: TestClient, slskd: respx.MockRouter) -> None:
+    complete_search(slskd, ALBUMS)
+    body = client.post("/api/search-and-wait", json={"query": "album", "limit": 2}).json()
+    assert body["response_count"] == 3
+    assert len(body["albums"]) == 2
+    assert "tracks" not in body["albums"][0]
+
+    body = client.post(
+        "/api/search-and-wait", json={"query": "album", "lossless_only": True, "min_tracks": 5}
+    ).json()
+    assert [a["title"] for a in body["albums"]] == ["FLAC Album"]
+    assert body["albums"][0]["track_count"] == 10
+
+
+def test_download_best_enqueues_the_top_match(client: TestClient, slskd: respx.MockRouter) -> None:
+    complete_search(slskd, ALBUMS)
+    enqueue = slskd.post("/transfers/downloads/slow").respond(201)
+    response = client.post(
+        "/api/download-best", json={"query": "album", "lossless_only": True, "min_tracks": 2}
+    )
+    assert response.status_code == 202
+    assert response.json()["album"]["username"] == "slow"
+    assert len(json.loads(enqueue.calls.last.request.content)) == 10
+
+
+def test_download_best_404_when_nothing_matches(
+    client: TestClient, slskd: respx.MockRouter
+) -> None:
+    complete_search(slskd, ALBUMS)
+    response = client.post("/api/download-best", json={"query": "album", "min_tracks": 50})
+    assert response.status_code == 404
+    assert "No album matched" in response.json()["detail"]
+
+
+def test_overview(client: TestClient, slskd: respx.MockRouter) -> None:
+    slskd.get("/application").respond(
+        json={"server": {"state": "Connected, LoggedIn", "isConnected": True, "isLoggedIn": True}}
+    )
+    slskd.get("/transfers/downloads").respond(
+        json=[
+            {
+                "username": "alice",
+                "directories": [
+                    {
+                        "directory": "Music\\Album",
+                        "files": [
+                            {
+                                "id": "1",
+                                "username": "alice",
+                                "filename": "Music\\Album\\1.flac",
+                                "size": 100,
+                                "state": "InProgress",
+                                "bytesTransferred": 40,
+                                "averageSpeed": 1500.0,
+                            },
+                            {
+                                "id": "2",
+                                "username": "alice",
+                                "filename": "Music\\Album\\2.flac",
+                                "size": 100,
+                                "state": "Queued, Remotely",
+                            },
+                        ],
+                    }
+                ],
+            }
+        ]
+    )
+    body = client.get("/api/overview").json()
+    assert body["status"]["logged_in"] is True
+    assert body["stats"] == {
+        "active_albums": 1,
+        "queued_files": 1,
+        "downloading_files": 1,
+        "completed_albums": 0,
+        "failed_albums": 0,
+        "speed": 1500.0,
+    }
+    assert body["downloads"] == [
+        {
+            "username": "alice",
+            "directory": "Music\\Album",
+            "title": "Album",
+            "state": "downloading",
+            "percent": 20.0,
+            "file_count": 2,
+        }
+    ]

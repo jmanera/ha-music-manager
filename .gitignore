@@ -16,3 +16,4 @@ frontend/dist/
 src/ha_music_manager/static/
 .claude/
 .fake_slskd.pid
+integration_tests/.venv/
