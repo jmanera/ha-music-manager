@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2
 
 - Don't report slskd's expected startup warnings (no script shell, headless mode) as the reason
   Soulseek is disconnected.

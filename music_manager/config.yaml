@@ -1,5 +1,5 @@
 name: Music Manager
-version: "0.2.1"
+version: "0.2.2"
 slug: music_manager
 description: Search and download music from the Soulseek network, grouped by album.
 url: https://github.com/jmanera/ha-music-manager

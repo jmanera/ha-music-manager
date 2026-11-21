@@ -1,6 +1,6 @@
 [project]
 name = "ha-music-manager"
-version = "0.2.1"
+version = "0.2.2"
 description = "Search and download music from the Soulseek network inside Home Assistant, with an album-oriented web UI."
 readme = "README.md"
 requires-python = ">=3.13"
