@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Don't report slskd's expected startup warnings (no script shell, headless mode) as the reason
+  Soulseek is disconnected.
+
 ## 0.2.1
 
 - Show why Soulseek is not logged in (e.g. a rejected username or password) in the app header,

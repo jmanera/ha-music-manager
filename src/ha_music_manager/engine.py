@@ -21,6 +21,12 @@ log = logging.getLogger(__name__)
 # continuation lines carry no prefix.
 SLSKD_LINE = re.compile(r"^\[\d{2}:\d{2}:\d{2} (?P<level>[A-Z]{3})\] (?P<message>.*)$")
 SLSKD_LEVELS = {"WRN": logging.WARNING, "ERR": logging.ERROR, "FTL": logging.CRITICAL}
+# Warnings slskd prints on every start in this setup. They are expected, so they stay at debug
+# and never pass for the reason Soulseek is disconnected.
+SLSKD_EXPECTED = (
+    "Unable to determine default script executable",  # we run no slskd scripts
+    "Running in headless mode",  # we bring our own UI
+)
 
 
 def slskd_config(settings: Settings, api_key: str) -> dict[str, Any]:
@@ -105,6 +111,8 @@ class SlskdEngine:
         """Pass slskd's output on, surfacing warnings and errors at the app's default log level."""
         match = SLSKD_LINE.match(line)
         level = SLSKD_LEVELS.get(match["level"], logging.DEBUG) if match else logging.DEBUG
+        if match and match["message"].startswith(SLSKD_EXPECTED):
+            level = logging.DEBUG
         if match and level > logging.DEBUG:
             self.last_error = match["message"][:300]
         log.log(level, "slskd: %s", line)
