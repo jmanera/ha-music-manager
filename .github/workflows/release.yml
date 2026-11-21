@@ -1,0 +1,47 @@
+# Builds and publishes the multi-arch app image on a version tag.
+# Tests, lint and type checks run locally (`make check` / pre-commit) to keep CI time minimal.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches the app version
+        if: github.ref_type == 'tag'
+        run: |
+          version=$(grep -Po '^version: "\K[^"]+' music_manager/config.yaml)
+          test "v$version" = "${GITHUB_REF_NAME}" \
+            || { echo "::error::tag ${GITHUB_REF_NAME} != config.yaml version $version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (amd64 + arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: music_manager/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.ref_type == 'tag' }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/ha-music-manager:${{ env.VERSION || 'dev' }}
+            ghcr.io/${{ github.repository_owner }}/ha-music-manager:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

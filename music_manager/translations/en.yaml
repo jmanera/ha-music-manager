@@ -1,0 +1,16 @@
+configuration:
+  soulseek_username:
+    name: Soulseek username
+    description: Created on first login if the name is free.
+  soulseek_password:
+    name: Soulseek password
+  download_dir:
+    name: Download folder
+    description: Finished albums go here (under /media or /share).
+  share_dirs:
+    name: Shared folders
+    description: Folders other Soulseek users can browse and download from.
+  log_level:
+    name: Log level
+network:
+  50300/tcp: Soulseek peer connections

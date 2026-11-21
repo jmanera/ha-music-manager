@@ -1,0 +1,14 @@
+.git
+.venv
+.data
+dist
+**/node_modules
+frontend/dist
+src/ha_music_manager/static
+**/__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+htmlcov
+coverage.xml
+tests

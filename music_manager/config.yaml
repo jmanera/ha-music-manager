@@ -1,0 +1,38 @@
+name: Music Manager
+version: "0.1.0"
+slug: music_manager
+description: Search and download music from the Soulseek network, grouped by album.
+url: https://github.com/jmanera/ha-music-manager
+image: ghcr.io/jmanera/ha-music-manager
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:music-box-multiple
+panel_title: Music
+map:
+  - type: media
+    read_only: false
+  - type: share
+    read_only: false
+ports:
+  50300/tcp: 50300
+ports_description:
+  50300/tcp: Soulseek peer connections (forward it on your router for best results)
+options:
+  soulseek_username: ""
+  soulseek_password: ""
+  download_dir: /media/music
+  share_dirs: []
+  log_level: info
+schema:
+  soulseek_username: str
+  soulseek_password: password
+  download_dir: match(^/(media|share)/.+)
+  share_dirs:
+    - match(^/(media|share)/.+)
+  log_level: list(debug|info|warning|error)
