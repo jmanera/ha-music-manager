@@ -1,0 +1,38 @@
+# Test environment for the Home Assistant integration (custom_components/music_manager).
+# Separate from the app's project: Home Assistant needs Python 3.14 and pins its own versions.
+[project]
+name = "music-manager-integration-tests"
+version = "0"
+requires-python = ">=3.14.2"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest-homeassistant-custom-component==0.13.375",
+    "ruff>=0.8",
+    "mypy>=1.14",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+source = ["custom_components.music_manager"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
+skip_covered = true
+
+[tool.mypy]
+strict = true
+python_version = "3.14"
+mypy_path = ".."
+explicit_package_bases = true

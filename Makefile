@@ -1,15 +1,17 @@
-.PHONY: help install lint typecheck test ui-check ui-test security check dev demo ui-dev ui-build image app-bundle clean
+.PHONY: help install lint typecheck test ui-check ui-test ha-lint ha-test hassfest e2e security check dev demo ui-dev ui-build image app-bundle clean
 
 UV ?= uv
+HA_UV ?= uv --directory integration_tests
 NPM ?= npm --prefix frontend
 IMAGE ?= ha-music-manager:dev
 
 help:  ## Show this help
-	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
+	@grep -E '^[a-z0-9-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
 
 install:  ## Install Python + npm dependencies and git hooks
 	$(UV) sync --frozen
 	$(NPM) ci
+	$(HA_UV) sync --frozen
 	$(UV) run pre-commit install
 
 lint:  ## Ruff lint + format check
@@ -28,6 +30,20 @@ ui-check:  ## svelte-check (types + a11y)
 ui-test:  ## Frontend unit tests
 	$(NPM) test
 
+ha-lint:  ## Ruff + mypy --strict for the Home Assistant integration (Python 3.14 env)
+	$(HA_UV) run ruff check ../custom_components tests
+	$(HA_UV) run ruff format --check ../custom_components tests
+	$(HA_UV) run mypy ../custom_components/music_manager
+
+ha-test:  ## Integration tests against a real Home Assistant core
+	$(HA_UV) run pytest -p no:cacheprovider --cov --cov-report=term
+
+hassfest:  ## Home Assistant's official integration validator (Docker)
+	docker run --rm -v "$(CURDIR):/github/workspace" ghcr.io/home-assistant/hassfest
+
+e2e: image  ## Real Home Assistant + app image + fake slskd in Docker
+	./scripts/e2e.sh
+
 security:  ## bandit + pip-audit + npm audit
 	$(UV) run bandit -q -r src
 	$(UV) export --frozen --no-dev --no-emit-project -o .audit-requirements.txt >/dev/null
@@ -35,7 +51,7 @@ security:  ## bandit + pip-audit + npm audit
 	@rm -f .audit-requirements.txt
 	$(NPM) audit --omit=dev
 
-check: lint typecheck test ui-check ui-test security  ## Everything. Runs locally, not in CI
+check: lint typecheck test ui-check ui-test ha-lint ha-test security  ## Everything. Runs locally, not in CI
 
 ui-build:  ## Build the UI into the Python package so the backend serves it
 	$(NPM) run build

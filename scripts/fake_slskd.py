@@ -6,6 +6,7 @@ Searches "find" a few made-up albums over a couple of seconds; downloads progres
 from __future__ import annotations
 
 import itertools
+import os
 import time
 from typing import Any
 
@@ -199,4 +200,5 @@ def cancel(username: str, transfer_id: str) -> None:
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=5031, log_level="warning")
+    host = os.environ.get("FAKE_SLSKD_HOST", "127.0.0.1")  # 0.0.0.0 in the e2e containers
+    uvicorn.run(app, host=host, port=5031, log_level="warning")

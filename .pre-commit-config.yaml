@@ -49,3 +49,9 @@ repos:
         language: system
         files: ^frontend/src/
         pass_filenames: false
+      - id: ha-integration
+        name: Home Assistant integration (ruff, mypy, pytest)
+        entry: make ha-lint ha-test
+        language: system
+        files: ^(custom_components|integration_tests)/
+        pass_filenames: false

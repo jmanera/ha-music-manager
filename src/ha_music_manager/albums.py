@@ -33,11 +33,13 @@ class Track(BaseModel):
     length: int | None
 
 
-class AlbumCandidate(BaseModel):
+class AlbumSummary(BaseModel):
+    """An album without its track list: what automations and Home Assistant get."""
+
     username: str
     directory: str
     title: str
-    tracks: list[Track]
+    track_count: int
     quality: str
     lossless: bool
     total_size: int
@@ -46,6 +48,13 @@ class AlbumCandidate(BaseModel):
     queue_length: int
     upload_speed: int
     score: float
+
+
+class AlbumCandidate(AlbumSummary):
+    tracks: list[Track]
+
+    def summary(self) -> AlbumSummary:
+        return AlbumSummary.model_validate(self.model_dump(exclude={"tracks"}))
 
 
 def split_path(filename: str) -> tuple[str, str]:
@@ -122,6 +131,7 @@ def group_albums(responses: list[SearchResponse], min_tracks: int = 1) -> list[A
                     username=response.username,
                     directory=directory,
                     title=album_title(directory),
+                    track_count=len(files),
                     tracks=[
                         Track(
                             filename=f.filename,

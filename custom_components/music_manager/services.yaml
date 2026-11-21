@@ -1,0 +1,42 @@
+search:
+  fields:
+    query: &query
+      required: true
+      example: "Radiohead OK Computer"
+      selector:
+        text:
+    limit:
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 50
+    lossless_only: &lossless_only
+      default: false
+      selector:
+        boolean:
+    free_slot_only: &free_slot_only
+      default: false
+      selector:
+        boolean:
+    min_tracks: &min_tracks
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 100
+    search_time: &search_time
+      default: 20
+      selector:
+        number:
+          min: 5
+          max: 120
+          unit_of_measurement: s
+
+download_best:
+  fields:
+    query: *query
+    lossless_only: *lossless_only
+    free_slot_only: *free_slot_only
+    min_tracks: *min_tracks
+    search_time: *search_time

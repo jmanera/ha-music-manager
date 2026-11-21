@@ -1,0 +1,19 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "connected": { "default": "mdi:lan-connect", "state": { "off": "mdi:lan-disconnect" } }
+    },
+    "sensor": {
+      "active_albums": { "default": "mdi:album" },
+      "queued_files": { "default": "mdi:tray-full" },
+      "downloading_files": { "default": "mdi:download" },
+      "download_speed": { "default": "mdi:speedometer" },
+      "completed_albums": { "default": "mdi:check-circle-outline" },
+      "failed_albums": { "default": "mdi:alert-circle-outline" }
+    }
+  },
+  "services": {
+    "search": { "service": "mdi:music-box-multiple" },
+    "download_best": { "service": "mdi:download-circle" }
+  }
+}

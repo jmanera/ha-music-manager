@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Connect to a Music Manager app. On Home Assistant OS the app is discovered automatically; use this only if it runs elsewhere.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "api_key": "API key"
+        },
+        "data_description": {
+          "host": "Hostname or IP address of the app.",
+          "api_key": "Found in the app's data folder, in the file integration_key."
+        }
+      },
+      "hassio_confirm": {
+        "title": "Music Manager app found",
+        "description": "Do you want to connect Home Assistant to the {addon} app? You get download sensors, search and download actions, and events when albums finish."
+      },
+      "reauth_confirm": {
+        "description": "The Music Manager app rejected the API key. Enter the current one (file integration_key in the app's data folder), or restart the app so it announces itself again.",
+        "data": {
+          "api_key": "API key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid API key"
+    },
+    "abort": {
+      "already_configured": "Music Manager is already configured",
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid API key",
+      "reauth_successful": "Re-authentication was successful"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connected": { "name": "Soulseek connection" }
+    },
+    "sensor": {
+      "active_albums": { "name": "Active albums", "unit_of_measurement": "albums" },
+      "queued_files": { "name": "Queued files", "unit_of_measurement": "files" },
+      "downloading_files": { "name": "Downloading files", "unit_of_measurement": "files" },
+      "download_speed": { "name": "Download speed" },
+      "completed_albums": { "name": "Completed albums", "unit_of_measurement": "albums" },
+      "failed_albums": { "name": "Failed albums", "unit_of_measurement": "albums" }
+    }
+  },
+  "services": {
+    "search": {
+      "name": "Search",
+      "description": "Searches the Soulseek network and returns the best album matches.",
+      "fields": {
+        "query": { "name": "Query", "description": "Artist, album or song." },
+        "limit": { "name": "Limit", "description": "How many albums to return at most." },
+        "lossless_only": { "name": "Lossless only", "description": "Only FLAC, ALAC, WAV and other lossless formats." },
+        "free_slot_only": { "name": "Free slot only", "description": "Only users who can start uploading right away." },
+        "min_tracks": { "name": "Minimum tracks", "description": "Skip folders with fewer audio files, like singles." },
+        "search_time": { "name": "Search time", "description": "How long to collect results before answering." }
+      }
+    },
+    "download_best": {
+      "name": "Download best match",
+      "description": "Searches the Soulseek network and downloads the highest-ranked album that passes the filters.",
+      "fields": {
+        "query": { "name": "Query", "description": "Artist, album or song." },
+        "lossless_only": { "name": "Lossless only", "description": "Only FLAC, ALAC, WAV and other lossless formats." },
+        "free_slot_only": { "name": "Free slot only", "description": "Only users who can start uploading right away." },
+        "min_tracks": { "name": "Minimum tracks", "description": "Skip folders with fewer audio files, like singles." },
+        "search_time": { "name": "Search time", "description": "How long to collect results before choosing." }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": { "message": "The Music Manager integration is not set up or not running." },
+    "no_match": { "message": "No album matched \"{query}\" with these filters." },
+    "request_failed": { "message": "The Music Manager app failed the request: {error}" }
+  }
+}
