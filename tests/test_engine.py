@@ -82,21 +82,22 @@ async def test_engine_surfaces_slskd_warnings_and_errors(
         'echo "[18:38:25 INF] Connecting to vps.slsknet.org"\n'
         'echo "[18:38:26 WRN] Failed to log in: INVALIDPASS"\n'
         'echo "   at Soulseek.SoulseekClient.LoginAsync()"\n'
+        'echo "[18:38:27 WRN] Running in headless mode; web UI is DISABLED"\n'
         "exec sleep 30\n"
     )
     fake.chmod(0o755)
     engine = SlskdEngine(make_settings(tmp_path, slskd_binary=fake))
-    with caplog.at_level(logging.INFO, logger="ha_music_manager.engine"):
+    with caplog.at_level(logging.DEBUG, logger="ha_music_manager.engine"):
         engine.start()
         for _ in range(100):
-            if engine.last_error:
+            if any("headless" in r.getMessage() for r in caplog.records):
                 break
             await asyncio.sleep(0.02)
         await engine.stop()
     assert engine.last_error == "Failed to log in: INVALIDPASS"
     surfaced = [r.getMessage() for r in caplog.records if r.levelno >= logging.INFO]
     assert any("INVALIDPASS" in m for m in surfaced)
-    assert not any("Connecting" in m or "LoginAsync" in m for m in surfaced)
+    assert not any("Connecting" in m or "LoginAsync" in m or "headless" in m for m in surfaced)
 
 
 def test_load_settings_merges_options_file_and_env(
