@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import logging
 import os
+import re
 import secrets
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,11 @@ import yaml
 from ha_music_manager.config import Settings
 
 log = logging.getLogger(__name__)
+
+# slskd's console lines look like "[18:38:25 WRN] Failed to log in: ...". Stack traces and other
+# continuation lines carry no prefix.
+SLSKD_LINE = re.compile(r"^\[\d{2}:\d{2}:\d{2} (?P<level>[A-Z]{3})\] (?P<message>.*)$")
+SLSKD_LEVELS = {"WRN": logging.WARNING, "ERR": logging.ERROR, "FTL": logging.CRITICAL}
 
 
 def slskd_config(settings: Settings, api_key: str) -> dict[str, Any]:
@@ -60,6 +66,7 @@ class SlskdEngine:
         self._task: asyncio.Task[None] | None = None
         self._process: asyncio.subprocess.Process | None = None
         self.restarts = 0
+        self.last_error: str | None = None  # last slskd warning or error, e.g. a rejected login
 
     @property
     def base_url(self) -> str:
@@ -94,6 +101,14 @@ class SlskdEngine:
             except TimeoutError:
                 self._process.kill()
 
+    def _relay(self, line: str) -> None:
+        """Pass slskd's output on, surfacing warnings and errors at the app's default log level."""
+        match = SLSKD_LINE.match(line)
+        level = SLSKD_LEVELS.get(match["level"], logging.DEBUG) if match else logging.DEBUG
+        if match and level > logging.DEBUG:
+            self.last_error = match["message"][:300]
+        log.log(level, "slskd: %s", line)
+
     async def _supervise(self, config: Path) -> None:
         env = {
             **os.environ,
@@ -112,7 +127,7 @@ class SlskdEngine:
             )
             if self._process.stdout:  # always set: stdout=PIPE
                 async for line in self._process.stdout:
-                    log.debug("slskd: %s", line.decode(errors="replace").rstrip())
+                    self._relay(line.decode(errors="replace").rstrip())
             code = await self._process.wait()
             self.restarts += 1
             log.warning("slskd exited with code %s; restarting in %.0fs", code, backoff)

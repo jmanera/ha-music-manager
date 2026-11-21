@@ -38,4 +38,8 @@ class MusicManagerConnected(MusicManagerEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         status = self.coordinator.data["status"]
-        return {"server_state": status["server_state"], "username": status["username"]}
+        return {
+            "server_state": status["server_state"],
+            "username": status["username"],
+            "error": status.get("error"),
+        }

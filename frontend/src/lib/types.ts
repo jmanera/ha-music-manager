@@ -7,6 +7,7 @@ export interface Status {
   logged_in: boolean;
   server_state: string;
   username: string;
+  error?: string | null;
 }
 
 export interface Track {
